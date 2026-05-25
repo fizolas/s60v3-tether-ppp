@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+
+# Bluetooth DUN tethering for Symbian S60v3 phones on Debian 13 (trixie)
+# using ppp rather than wvdial
+
+set -u
+
+rfc_channel=0
+devrfcomm="/dev/rfcomm${rfc_channel}"
+
+echo "Using ${devrfcomm}"
+
+if [[ $# -lt 1 ]]; then
+    echo "Usage: $0 <paired bluetooth device name>"
+    exit 1
+fi
+
+phone_name="$1"
+
+cleanup() {
+    echo
+    echo "Cleaning up..."
+
+    # Stop PPP cleanly if still running
+    sudo pkill -TERM pppd 2>/dev/null || true
+    sleep 2
+
+    # Release RFCOMM binding
+    if rfcomm show "$rfc_channel" >/dev/null 2>&1; then
+        echo "Releasing ${devrfcomm}"
+        sudo rfcomm release "$rfc_channel" 2>/dev/null || true
+        sleep 1
+    fi
+
+    # Remove stale lock files
+    sudo rm -f "/var/lock/LCK..rfcomm${rfc_channel}"
+
+    echo "Restarting NetworkManager"
+    sudo systemctl start NetworkManager 2>/dev/null || true
+
+    # Power down bluetooth if no rfcomm device remains
+    if [[ ! -e "$devrfcomm" ]]; then
+        echo "Deactivating bluetooth"
+        sudo rfkill block bluetooth 2>/dev/null || true
+    fi
+}
+
+trap cleanup EXIT INT TERM
+
+echo -n "Getting bluetooth address of ${phone_name}: "
+
+device_line=$(bluetoothctl devices Paired | grep -F "$phone_name" | head -n1 || true)
+
+
+if [[ -z "$device_line" ]]; then
+    echo "device not paired"
+    exit 1
+fi
+
+device_line=${device_line#Device }
+bt_address=${device_line%" ${phone_name}"}
+
+echo "$bt_address"
+
+echo "Stopping NetworkManager"
+sudo systemctl stop NetworkManager || {
+    echo "Failed to stop NetworkManager"
+    exit 1
+}
+
+echo "Activating bluetooth"
+sudo rfkill unblock bluetooth
+
+echo -n "Getting dial-up channel: "
+
+bt_channel=""
+
+for _ in {1..10}; do
+    line=$(sdptool search --bdaddr "$bt_address" DUN 2>/dev/null | grep Channel || true)
+
+    bt_channel=${line#*: }
+
+    if [[ -n "$bt_channel" ]]; then
+        break
+    fi
+
+    sleep 1
+done
+
+if [[ -z "$bt_channel" ]]; then
+    echo "failed"
+    echo "Could not discover DUN channel"
+    exit 1
+fi
+
+echo "$bt_channel"
+
+echo "Binding rfcomm ${rfc_channel} to ${bt_address}/${bt_channel}"
+
+sudo rfcomm bind "$rfc_channel" "$bt_address" "$bt_channel" || {
+    echo "rfcomm bind failed"
+    exit 1
+}
+
+echo "Tethering ${phone_name} (Ctrl-C to finish)"
+
+sudo pppd call peers-provider
+pppd_exit=$?
+
+exit "$pppd_exit"

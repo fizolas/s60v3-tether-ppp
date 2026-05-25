@@ -1,0 +1,28 @@
+# put this script in /etc/ppp/peers/
+
+/dev/rfcomm0
+921600
+#115200
+
+connect "/usr/sbin/chat -v -f /etc/chatscripts/chatscript-provider"
+
+noauth
+defaultroute
+usepeerdns
+#persist
+
+noipdefault
+nodetach
+debug
+
+noccp
+# nodeflate
+# nobsdcomp
+# novj
+# novjccomp
+
+noipv6
+	
+
+mtu 1400
+mru 1400

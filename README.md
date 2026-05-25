@@ -15,6 +15,6 @@ Pair your phone with your computer; set the computer as "authorised" in the blue
 
 Run "s60v3-tether phone_name" in a terminal to tether the phone with bluetooth name "phone_name"
 
-Ctrl-C stops the tethering session leaving the system consistent (both during dial-up channel search or during wvdial)
+Ctrl-C stops the tethering session leaving the system consistent (both during dial-up channel search or during ppp)
 
 Note: for the Evolution email client to work during tethering, set "Method to detect online state" to "base" in "Settings>Network Preferences" 

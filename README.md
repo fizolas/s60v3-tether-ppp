@@ -1,10 +1,9 @@
 # s60v3-tether-ppp
-Bluetooth tethering of s60v3 phones in Debian 13 (trixie) using ppp
-rather than wvdial
+Bluetooth tethering of s60v3 phones in Debian 13 (trixie) using ppp rather than wvdial
 
-Tethering means sharing the internet connection in your phone with
-your computer Put "chatscript-provider" in /etc/chatscripts/ and
-replace "apn.provider.com" with the APN of your mobile phone provider
+Tethering means sharing the internet connection in your phone with your computer 
+
+Put "chatscript-provider" in /etc/chatscripts/ and replace "apn.provider.com" with the APN of your mobile phone provider
 
 Put "peers-provider" in /etc/ppp/peers/
 
